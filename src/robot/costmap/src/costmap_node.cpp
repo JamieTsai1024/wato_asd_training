@@ -23,9 +23,9 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
   this->get_parameter("max_cost", costmap_.max_cost);
   
   // Subscriber and publisher 
-  lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/lidar", 10, std::bind(
-    &CostmapNode::laserCallback, this, std::placeholders::_1
-  ));
+  lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+    "/lidar", 10, std::bind(&CostmapNode::laserCallback, this, std::placeholders::_1)
+  );
   costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/costmap", 10);
   timer_ = this->create_wall_timer(std::chrono::milliseconds(500), std::bind(&CostmapNode::publishCostmap, this));
 }
@@ -99,7 +99,6 @@ void CostmapNode::publishCostmap() {
   costmap_pub_->publish(message);
 }
  
-// Define the timer to publish a message every 500ms
 void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
   // Step 1: Initialize costmap 
   costmap_.initialize();

@@ -8,8 +8,8 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
   this->declare_parameter("resolution", 0.1);
   this->declare_parameter("width", 100);
   this->declare_parameter("height", 100);
-  this->declare_parameter("origin_x", -5.0);
-  this->declare_parameter("origin_y", -5.0);
+  this->declare_parameter("origin_x", 0.0);
+  this->declare_parameter("origin_y", 0.0);
   this->declare_parameter("inflation_radius", 1.0);
   this->declare_parameter("max_cost", 100);
 

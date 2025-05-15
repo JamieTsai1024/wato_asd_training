@@ -2,27 +2,29 @@
 #define COSTMAP_CORE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 
 namespace robot
 {
 
 class CostmapCore {
   public:
-    // Constructor, we pass in the node's RCLCPP logger to enable logging to terminal
-    explicit CostmapCore(const rclcpp::Logger& logger);
-    std::vector<std::vector<int>> costs; // 2D grid of costs
-    double resolution;                   // meters per cell
-    int width;                           // number of cells in x
-    int height;                          // number of cells in y
-    double origin_x;                     // real-world origin (x)
-    double origin_y;                     // real-world origin (y)
-    double inflation_radius;             // meters
-    int max_cost;                        // max cost (e.g., 100)
+    explicit CostmapCore(const rclcpp::Logger& logger, rclcpp::Node* node);
     void initialize();
+    void markObstacleFromLaser(double range, double angle);
+    void inflateObstacles();
+    nav_msgs::msg::OccupancyGrid toOccupancyGrid(rclcpp::Time timestamp) const;
 
   private:
     rclcpp::Logger logger_;
-
+    nav_msgs::msg::OccupancyGrid grid_; 
+    double resolution_;        // meters per cell
+    int width_;                // number of cells in x
+    int height_;               // number of cells in y
+    double origin_x_;          // real-world origin (x)
+    double origin_y_;          // real-world origin (y)
+    double inflation_radius_;  // meters
+    int max_cost_;             // max cost (e.g., 100)
 };
 
 }  

@@ -18,7 +18,8 @@ void MapMemoryNode::costmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPt
 void MapMemoryNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
   double x = msg->pose.pose.position.x;
   double y = msg->pose.pose.position.y;
-  map_memory_.checkUpdateMap(x, y); 
+  double yaw = extractYaw(msg->pose.pose.orientation);
+  map_memory_.checkUpdateMap(x, y, yaw); 
 }
 
 void MapMemoryNode::updateMap() {
@@ -29,6 +30,14 @@ void MapMemoryNode::updateMap() {
     map.header.frame_id = "map";
     map_pub_->publish(map);
   }
+}
+
+double MapMemoryNode::extractYaw(const geometry_msgs::msg::Quaternion& quat) {
+  // Quaternion to yaw conversion
+  tf2::Quaternion tf_quat(quat.x, quat.y, quat.z, quat.w);
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, yaw);
+  return yaw;
 }
 
 int main(int argc, char ** argv) {

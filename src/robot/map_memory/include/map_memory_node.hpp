@@ -6,6 +6,8 @@
 #include "map_memory_core.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 class MapMemoryNode : public rclcpp::Node {
   public:
@@ -20,6 +22,7 @@ class MapMemoryNode : public rclcpp::Node {
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
     rclcpp::TimerBase::SharedPtr timer_;
+    double extractYaw(const geometry_msgs::msg::Quaternion& q);
 };
 
 #endif 

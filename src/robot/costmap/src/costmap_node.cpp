@@ -12,7 +12,7 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
 }
  
 void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
-  // Step 1: Initialize costmap 
+  // Step 1: Initialize costmap to free space 
   costmap_.initialize();
 
   // Step 2: Convert scan to grid and mark obstacles 

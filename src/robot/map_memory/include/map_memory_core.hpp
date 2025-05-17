@@ -4,14 +4,13 @@
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 
-namespace robot
-{
+namespace robot {
 
 class MapMemoryCore {
   public:
     explicit MapMemoryCore(const rclcpp::Logger& logger, rclcpp::Node* node);
     void storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap);
-    void checkUpdateMap(double x, double y);
+    void checkUpdateMap(double x, double y, double yaw);
     nav_msgs::msg::OccupancyGrid& getGlobalMap();
     bool getShouldUpdate();
     void integrateCostmap();
@@ -22,6 +21,7 @@ class MapMemoryCore {
     nav_msgs::msg::OccupancyGrid latest_costmap_;
     double last_x_;
     double last_y_;
+    double robot_yaw_;
     double distance_threshold_;
     bool costmap_updated_;
     bool should_update_map_;

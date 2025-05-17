@@ -2,7 +2,6 @@ map_memory_node:
   ros__parameters:
     last_x: 0.0
     last_y: 0.0
+    robot_yaw: 0.0
     distance_threshold: 1.5
-    costmap_updated: false 
-    should_update_map: false 
   

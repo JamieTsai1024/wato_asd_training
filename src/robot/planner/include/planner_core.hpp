@@ -2,6 +2,7 @@
 #define PLANNER_CORE_HPP_
 
 #include "rclcpp/rclcpp.hpp"
+
 #include <cmath>
 #include <vector>
 #include <unordered_map>
@@ -73,7 +74,6 @@ class PlannerCore {
     std::vector<CellIndex> getNeighbors(const CellIndex& idx) const;
     double heuristic(const CellIndex& a, const CellIndex& b) const;
     double distance(const CellIndex& a, const CellIndex& b) const;
-    int toIndex(const CellIndex& idx) const;
     CellIndex worldToGrid(const geometry_msgs::msg::Point& pt) const;
     geometry_msgs::msg::PoseStamped cellToPose(const CellIndex& idx,  const rclcpp::Time& now) const;
 };

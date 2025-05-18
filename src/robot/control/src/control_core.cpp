@@ -1,8 +1,6 @@
 #include "control_core.hpp"
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-namespace robot
-{
+namespace robot {
 
 ControlCore::ControlCore(const rclcpp::Logger& logger, rclcpp::Node* node) : logger_(logger) {
   lookahead_distance_ = node->declare_parameter<double>("lookahead_distance", 1.0);
@@ -60,7 +58,7 @@ geometry_msgs::msg::Twist ControlCore::computeVelocity(const geometry_msgs::msg:
   while (angle_error < -M_PI) angle_error += 2 * M_PI;
 
   cmd_vel.linear.x = linear_speed_;
-  cmd_vel.angular.z = 2.0 * angle_error;  // Proportional controller
+  cmd_vel.angular.z = 2.0 * angle_error; 
 
   return cmd_vel;
 }

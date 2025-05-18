@@ -8,7 +8,6 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
     "/lidar", 10, std::bind(&CostmapNode::laserCallback, this, std::placeholders::_1)
   );
   costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/costmap", 10);
-  timer_ = this->create_wall_timer(std::chrono::milliseconds(500), std::bind(&CostmapNode::publishCostmap, this));
 }
  
 void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
@@ -27,12 +26,10 @@ void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr sca
   // Step 3: Inflate
   costmap_.inflateObstacles();  
 
-  // Step 4: Publish 
-  publishCostmap();
-}
-
-void CostmapNode::publishCostmap() {
-  nav_msgs::msg::OccupancyGrid message = costmap_.toOccupancyGrid(this->now());
+  // Step 4: Publish message
+  rclcpp::Time timestamp = this->now();
+  std::string frame_id = scan->header.frame_id;
+  nav_msgs::msg::OccupancyGrid message = costmap_.toOccupancyGrid(timestamp, frame_id);
   costmap_pub_->publish(message);
 }
  

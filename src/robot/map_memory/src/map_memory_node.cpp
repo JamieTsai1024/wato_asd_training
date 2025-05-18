@@ -27,7 +27,6 @@ void MapMemoryNode::updateMap() {
     map_memory_.integrateCostmap();
     nav_msgs::msg::OccupancyGrid& map = map_memory_.getGlobalMap();
     map.header.stamp = this->get_clock()->now();
-    map.header.frame_id = "map";
     map_pub_->publish(map);
   }
 }

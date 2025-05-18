@@ -33,6 +33,7 @@ void MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
     global_map_.info.origin.position.y = global_origin_y;
     global_map_.info.origin.orientation.w = 1.0;
     global_map_.info.resolution = resolution;
+    global_map_.header = costmap.header;
     global_map_.data.assign(global_width * global_height, -1);
   }
 }

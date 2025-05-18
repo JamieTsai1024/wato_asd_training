@@ -1,7 +1,6 @@
 #include "planner_core.hpp"
 
-namespace robot
-{
+namespace robot {
 
 PlannerCore::PlannerCore(const rclcpp::Logger& logger) 
 : logger_(logger) {}
@@ -22,7 +21,9 @@ void PlannerCore::updatePose(const geometry_msgs::msg::Pose& pose) {
 bool PlannerCore::goalReached() const {
   double dx = goal_.point.x - robot_pose_.position.x;
   double dy = goal_.point.y - robot_pose_.position.y;
-  return std::sqrt(dx * dx + dy * dy) < 0.5; // Threshold for reaching the goal
+  double distance_to_goal = std::hypot(dx, dy);
+  double threshold = 0.5; // Threshold for reaching the goal
+  return distance_to_goal < threshold;
 }
 
 nav_msgs::msg::Path PlannerCore::planPath(const rclcpp::Time& now) {
@@ -36,15 +37,12 @@ nav_msgs::msg::Path PlannerCore::planPath(const rclcpp::Time& now) {
 }
 
 nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
-
   nav_msgs::msg::Path path;
   CellIndex start = worldToGrid(robot_pose_.position);
   CellIndex goal = worldToGrid(goal_.point);  
 
   path.header.stamp = now;
-  path.header.frame_id = "map";
-
-  RCLCPP_INFO(logger_, "Planning A* from start (%d, %d) to goal (%d, %d)", start.x, start.y, goal.x, goal.y);
+  path.header.frame_id = current_map_.header.frame_id;
 
   // Check for occupied start or goal nodes 
   if (!isCellFree(start)) {
@@ -110,10 +108,12 @@ nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
   return path;
 }
 
-bool PlannerCore::isCellFree(const CellIndex& idx) const {
-  if (idx.x < 0 || idx.y < 0 || idx.x >= static_cast<int>(current_map_.info.width) || idx.y >= static_cast<int>(current_map_.info.height)) return false;
-  int value = current_map_.data[toIndex(idx)];
-  return 0 <= value && value < 50; // threshold of 50 for free cells 
+bool PlannerCore::isCellFree(const CellIndex& cell) const {
+  if (cell.x < 0 || cell.y < 0 || cell.x >= static_cast<int>(current_map_.info.width) || cell.y >= static_cast<int>(current_map_.info.height)) return false;
+  int index = cell.y * current_map_.info.width + cell.x;
+  int value = current_map_.data[index];
+  bool cellFree = value == -1 || (0 <= value && value < 50); // threshold of 50 for free cells 
+  return cellFree; 
 }
 
 std::vector<CellIndex> PlannerCore::getNeighbors(const CellIndex& idx) const {
@@ -135,10 +135,6 @@ double PlannerCore::distance(const CellIndex& a, const CellIndex& b) const {
   return std::hypot(a.x - b.x, a.y - b.y);  
 }
 
-int PlannerCore::toIndex(const CellIndex& idx) const {
-  return idx.y * current_map_.info.width + idx.x;
-}
-
 CellIndex PlannerCore::worldToGrid(const geometry_msgs::msg::Point& pt) const {
   int x = static_cast<int>((pt.x - current_map_.info.origin.position.x) / current_map_.info.resolution);
   int y = static_cast<int>((pt.y - current_map_.info.origin.position.y) / current_map_.info.resolution);
@@ -148,7 +144,7 @@ CellIndex PlannerCore::worldToGrid(const geometry_msgs::msg::Point& pt) const {
 geometry_msgs::msg::PoseStamped PlannerCore::cellToPose(const CellIndex& idx, const rclcpp::Time& now) const {
   geometry_msgs::msg::PoseStamped pose;
   pose.header.stamp = now;
-  pose.header.frame_id = "map";
+  pose.header.frame_id = current_map_.header.frame_id;
   pose.pose.position.x = current_map_.info.origin.position.x + idx.x * current_map_.info.resolution;
   pose.pose.position.y = current_map_.info.origin.position.y + idx.y * current_map_.info.resolution;
   pose.pose.position.z = 0.0;

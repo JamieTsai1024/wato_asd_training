@@ -13,7 +13,7 @@ class CostmapCore {
     void initialize();
     void markObstacleFromLaser(double range, double angle);
     void inflateObstacles();
-    nav_msgs::msg::OccupancyGrid toOccupancyGrid(rclcpp::Time timestamp) const;
+    nav_msgs::msg::OccupancyGrid toOccupancyGrid(rclcpp::Time timestamp, std::string frame_id) const;
 
   private:
     rclcpp::Logger logger_;

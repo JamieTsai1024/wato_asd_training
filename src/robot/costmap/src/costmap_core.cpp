@@ -76,9 +76,9 @@ void CostmapCore::inflateObstacles() {
   grid_.data = inflated;
 }
 
-nav_msgs::msg::OccupancyGrid CostmapCore::toOccupancyGrid(rclcpp::Time timestamp) const {
+nav_msgs::msg::OccupancyGrid CostmapCore::toOccupancyGrid(rclcpp::Time timestamp, std::string frame_id) const {
   nav_msgs::msg::OccupancyGrid result = grid_;
-  result.header.frame_id = "map"; 
+  result.header.frame_id = frame_id; 
   result.header.stamp = timestamp;
   result.info.map_load_time = timestamp;
   return result;

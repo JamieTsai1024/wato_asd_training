@@ -29,7 +29,7 @@ void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr sca
   // Step 4: Publish message
   rclcpp::Time timestamp = this->now();
   std::string frame_id = scan->header.frame_id;
-  nav_msgs::msg::OccupancyGrid message = costmap_.toOccupancyGrid(timestamp, frame_id);
+  nav_msgs::msg::OccupancyGrid message = costmap_.getOccupancyGrid(timestamp, frame_id);
   costmap_pub_->publish(message);
 }
  

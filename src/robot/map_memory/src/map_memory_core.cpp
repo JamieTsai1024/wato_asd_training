@@ -20,8 +20,8 @@ void MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
     // Calculate global map dimensions
     int local_width = latest_costmap_.info.width;
     int local_height = latest_costmap_.info.height;
-    int global_width = local_width * 2;
-    int global_height = local_height * 2;
+    int global_width = local_width;
+    int global_height = local_height;
     float resolution = latest_costmap_.info.resolution;
     int global_origin_x = -static_cast<int>(global_width * resolution) / 2;
     int global_origin_y = -static_cast<int>(global_height * resolution) / 2;
@@ -33,7 +33,7 @@ void MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
     global_map_.info.origin.position.y = global_origin_y;
     global_map_.info.origin.orientation.w = 1.0;
     global_map_.info.resolution = resolution;
-    global_map_.header = costmap.header;
+    global_map_.header.frame_id = "sim_world"; 
     global_map_.data.assign(global_width * global_height, -1);
   }
 }

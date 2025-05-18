@@ -4,8 +4,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 
-namespace robot
-{
+namespace robot {
 
 class CostmapCore {
   public:
@@ -13,18 +12,18 @@ class CostmapCore {
     void initialize();
     void markObstacleFromLaser(double range, double angle);
     void inflateObstacles();
-    nav_msgs::msg::OccupancyGrid toOccupancyGrid(rclcpp::Time timestamp, std::string frame_id) const;
+    nav_msgs::msg::OccupancyGrid getOccupancyGrid(rclcpp::Time timestamp, std::string frame_id) const;
 
   private:
     rclcpp::Logger logger_;
     nav_msgs::msg::OccupancyGrid grid_; 
-    double resolution_;        // meters per cell
-    int width_;                // number of cells in x
-    int height_;               // number of cells in y
-    double origin_x_;          // real-world origin (x)
-    double origin_y_;          // real-world origin (y)
-    double inflation_radius_;  // meters
-    int max_cost_;             // max cost (e.g., 100)
+    double resolution_;
+    int width_;
+    int height_;
+    double origin_x_;
+    double origin_y_;
+    double inflation_radius_;
+    int max_cost_;
 };
 
 }  

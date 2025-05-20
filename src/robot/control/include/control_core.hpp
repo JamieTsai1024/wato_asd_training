@@ -19,14 +19,15 @@ class ControlCore {
     ControlCore(const rclcpp::Logger& logger, rclcpp::Node* node);
     void updatePath(const nav_msgs::msg::Path::SharedPtr path);
     void updateOdometry(const nav_msgs::msg::Odometry::SharedPtr odometry);
-    std::optional<geometry_msgs::msg::Twist> controlLoop();
+    geometry_msgs::msg::Twist controlLoop();
 
   private:
     rclcpp::Logger logger_;
     nav_msgs::msg::Path::SharedPtr current_path_;
     nav_msgs::msg::Odometry::SharedPtr robot_odometry_;
     double lookahead_distance_;
-    double goal_tolerance_;
+    double goal_threshold_;
+    double max_steering_angle_;
     double linear_speed_;
     std::optional<geometry_msgs::msg::PoseStamped> findLookaheadPoint();
     geometry_msgs::msg::Twist computeVelocity(const geometry_msgs::msg::PoseStamped& target);

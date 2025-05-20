@@ -3,9 +3,10 @@
 namespace robot {
 
 ControlCore::ControlCore(const rclcpp::Logger& logger, rclcpp::Node* node) : logger_(logger) {
-  lookahead_distance_ = node->declare_parameter<double>("lookahead_distance", 1.0);
-  goal_tolerance_ = node->declare_parameter<double>("goal_tolerance", 0.1);
+  lookahead_distance_ = node->declare_parameter<double>("lookahead_distance", 1.5);
+  goal_threshold_ = node->declare_parameter<double>("goal_threshold", 0.5);
   linear_speed_ = node->declare_parameter<double>("linear_speed", 0.5);
+  max_steering_angle_ = node->declare_parameter<double>("max_steering_angle", 1.5);
 }
 
 void ControlCore::updatePath(const nav_msgs::msg::Path::SharedPtr path) {
@@ -16,13 +17,21 @@ void ControlCore::updateOdometry(const nav_msgs::msg::Odometry::SharedPtr odomet
   robot_odometry_ = odometry;
 }
 
-std::optional<geometry_msgs::msg::Twist> ControlCore::controlLoop() {
-  // Skip control if no path or odometry data is available
-  if (!current_path_ || !robot_odometry_) return std::nullopt;
+geometry_msgs::msg::Twist ControlCore::controlLoop() {
+  // Skip control (publish 0 velocity) if no path or odometry data is available
+  if (!robot_odometry_ || !current_path_ || current_path_->poses.empty()) return geometry_msgs::msg::Twist(); 
+
+  // Check if the robot is close to the goal (redundant catch for delays in path planning)
+  const auto& robot_pos = robot_odometry_->pose.pose.position;
+  const auto& goal_pos = current_path_->poses.back().pose.position;
+  double distance_to_goal = computeDistance(robot_pos, goal_pos);
+  if (distance_to_goal < goal_threshold_) {
+    return geometry_msgs::msg::Twist(); 
+  }
 
   // Find the lookahead point
   auto target = findLookaheadPoint();
-  if (!target) return std::nullopt;
+  if (!target) return geometry_msgs::msg::Twist();
 
   // Compute velocity command
   geometry_msgs::msg::Twist cmd = computeVelocity(*target);
@@ -37,28 +46,32 @@ std::optional<geometry_msgs::msg::PoseStamped> ControlCore::findLookaheadPoint()
       return pose;
     }
   }
+  // Use last point if no lookahead point is found
+  if (!current_path_->poses.empty()) return current_path_->poses.back();
   return std::nullopt;
 }
 
 geometry_msgs::msg::Twist ControlCore::computeVelocity(const geometry_msgs::msg::PoseStamped& target) {
-  // Logic to compute velocity commands
   geometry_msgs::msg::Twist cmd_vel;
 
   const auto& robot_pose = robot_odometry_->pose.pose;
-  double robot_yaw = extractYaw(robot_pose.orientation);
+  double robot_angle = extractYaw(robot_pose.orientation);
 
   double dx = target.pose.position.x - robot_pose.position.x;
   double dy = target.pose.position.y - robot_pose.position.y;
 
   double target_angle = std::atan2(dy, dx);
-  double angle_error = target_angle - robot_yaw;
+  double steering_angle = target_angle - robot_angle;
 
-  // Normalize angle to [-π, π]
-  while (angle_error > M_PI) angle_error -= 2 * M_PI;
-  while (angle_error < -M_PI) angle_error += 2 * M_PI;
+  // Normalize angle to [-π, π] (numerically stable)
+  steering_angle = std::atan2(std::sin(steering_angle), std::cos(steering_angle)); 
+  steering_angle = std::clamp(steering_angle, -max_steering_angle_, max_steering_angle_); 
 
-  cmd_vel.linear.x = linear_speed_;
-  cmd_vel.angular.z = 2.0 * angle_error; 
+  double abs_angle = std::abs(steering_angle);
+  double speed_scaling = std::max(0.1, 1.0 - abs_angle / max_steering_angle_); 
+
+  cmd_vel.linear.x = linear_speed_ * speed_scaling;
+  cmd_vel.angular.z = steering_angle; 
 
   return cmd_vel;
 }

@@ -20,11 +20,8 @@ void ControlNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 }
 
 void ControlNode::controlLoop() {
-  std::optional<geometry_msgs::msg::Twist> cmd_vel = control_.controlLoop();
-  // Publish the velocity command
-  if (cmd_vel) {
-    cmd_vel_pub_->publish(*cmd_vel);
-  }
+  geometry_msgs::msg::Twist cmd_vel = control_.controlLoop();
+  cmd_vel_pub_->publish(cmd_vel);
 }
 
 int main(int argc, char ** argv) {

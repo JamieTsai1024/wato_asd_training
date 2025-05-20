@@ -2,8 +2,9 @@
 
 namespace robot {
 
-PlannerCore::PlannerCore(const rclcpp::Logger& logger) 
-: logger_(logger) {}
+PlannerCore::PlannerCore(const rclcpp::Logger& logger, rclcpp::Node* node) : logger_(logger) {
+  goal_threshold_ = node->declare_parameter<double>("goal_threshold", 0.5);; // Distance threshold for reaching the goal 
+}
 
 void PlannerCore::updateMap(const nav_msgs::msg::OccupancyGrid& map) {
   current_map_ = map;
@@ -22,8 +23,7 @@ bool PlannerCore::goalReached() {
   double dx = goal_.point.x - robot_pose_.position.x;
   double dy = goal_.point.y - robot_pose_.position.y;
   double distance_to_goal = std::hypot(dx, dy);
-  double threshold = 0.5; // Threshold for reaching the goal
-  bool reached = distance_to_goal < threshold;
+  bool reached = distance_to_goal < goal_threshold_;
   if (reached) goal_received_ = false; // Reset goal when reached
   return reached;
 }

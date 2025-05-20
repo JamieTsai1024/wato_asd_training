@@ -1,6 +1,6 @@
 #include "planner_node.hpp"
 
-PlannerNode::PlannerNode() : Node("planner"), planner_(robot::PlannerCore(this->get_logger())), state_(State::WAITING_FOR_GOAL) {
+PlannerNode::PlannerNode() : Node("planner"), planner_(robot::PlannerCore(this->get_logger(), this)), state_(State::WAITING_FOR_GOAL) {
   map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
     "/map", 10, std::bind(&PlannerNode::mapCallback, this, std::placeholders::_1)
   );

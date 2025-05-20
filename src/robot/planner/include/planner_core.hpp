@@ -55,7 +55,7 @@ struct CompareF {
 
 class PlannerCore {
   public:
-    explicit PlannerCore(const rclcpp::Logger& logger);
+    explicit PlannerCore(const rclcpp::Logger& logger, rclcpp::Node* node);
     void updateMap(const nav_msgs::msg::OccupancyGrid& map);
     void updateGoal(const geometry_msgs::msg::PointStamped& goal);
     void updatePose(const geometry_msgs::msg::Pose& pose);
@@ -68,6 +68,7 @@ class PlannerCore {
     geometry_msgs::msg::PointStamped goal_;
     geometry_msgs::msg::Pose robot_pose_;
     bool goal_received_ = false;
+    double goal_threshold_;
     nav_msgs::msg::Path runAStar(const rclcpp::Time& now);
     bool isCellValid(const CellIndex& idx) const;
     bool isCellFree(const CellIndex& idx) const;

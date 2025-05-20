@@ -59,7 +59,7 @@ class PlannerCore {
     void updateMap(const nav_msgs::msg::OccupancyGrid& map);
     void updateGoal(const geometry_msgs::msg::PointStamped& goal);
     void updatePose(const geometry_msgs::msg::Pose& pose);
-    bool goalReached() const;
+    bool goalReached();
     nav_msgs::msg::Path planPath(const rclcpp::Time& now);
 
   private:
@@ -68,12 +68,13 @@ class PlannerCore {
     geometry_msgs::msg::PointStamped goal_;
     geometry_msgs::msg::Pose robot_pose_;
     bool goal_received_ = false;
-    
     nav_msgs::msg::Path runAStar(const rclcpp::Time& now);
+    bool isCellValid(const CellIndex& idx) const;
     bool isCellFree(const CellIndex& idx) const;
     std::vector<CellIndex> getNeighbors(const CellIndex& idx) const;
     double heuristic(const CellIndex& a, const CellIndex& b) const;
     double distance(const CellIndex& a, const CellIndex& b) const;
+    double getObstacleCost(const CellIndex& cell) const;
     CellIndex worldToGrid(const geometry_msgs::msg::Point& pt) const;
     geometry_msgs::msg::PoseStamped cellToPose(const CellIndex& idx,  const rclcpp::Time& now) const;
 };

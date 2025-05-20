@@ -3,5 +3,5 @@ costmap_node:
     resolution: 0.1
     width: 30
     height: 30
-    inflation_radius: 1.0
+    inflation_radius: 1.5
     max_cost: 100

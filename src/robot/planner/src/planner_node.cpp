@@ -18,6 +18,9 @@ void PlannerNode::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
   planner_.updateMap(*msg);
   if (state_ == State::WAITING_FOR_ROBOT_TO_REACH_GOAL) {
     path_pub_->publish(planner_.planPath(this->get_clock()->now()));
+  } else if (state_ == State::WAITING_FOR_GOAL) {
+    // Stop the robot if no goal is set
+    path_pub_->publish(nav_msgs::msg::Path()); 
   }
 }
 
@@ -43,8 +46,7 @@ void PlannerNode::timerCallback() {
   }
 }
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char ** argv) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<PlannerNode>());
   rclcpp::shutdown();

@@ -8,7 +8,7 @@ CostmapCore::CostmapCore(const rclcpp::Logger& logger, rclcpp::Node* node) : log
   resolution_ = node->declare_parameter<double>("resolution", 0.1);
   width_in_meters = node->declare_parameter<int>("width", 10);
   height_in_meters = node->declare_parameter<int>("height", 10);
-  inflation_radius_ = node->declare_parameter<double>("inflation_radius", 1.0);
+  inflation_radius_ = node->declare_parameter<double>("inflation_radius", 1.5);
   max_cost_ = node->declare_parameter<int>("max_cost", 100);
 
   // Calculate grid dimensions

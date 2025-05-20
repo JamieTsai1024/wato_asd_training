@@ -18,19 +18,27 @@ void PlannerCore::updatePose(const geometry_msgs::msg::Pose& pose) {
   robot_pose_ = pose;
 }
 
-bool PlannerCore::goalReached() const {
+bool PlannerCore::goalReached() {
   double dx = goal_.point.x - robot_pose_.position.x;
   double dy = goal_.point.y - robot_pose_.position.y;
   double distance_to_goal = std::hypot(dx, dy);
   double threshold = 0.5; // Threshold for reaching the goal
-  return distance_to_goal < threshold;
+  bool reached = distance_to_goal < threshold;
+  if (reached) goal_received_ = false; // Reset goal when reached
+  return reached;
 }
 
 nav_msgs::msg::Path PlannerCore::planPath(const rclcpp::Time& now) {
-  if (!goal_received_ || current_map_.data.empty()) {
-    RCLCPP_WARN(logger_, "Cannot plan path: Missing map or goal!");
+  // Check if goal and map are set
+  if (!goal_received_) {
+    RCLCPP_WARN(logger_, "Cannot plan path: Missing goal!");
     return nav_msgs::msg::Path();
   }
+  if (current_map_.data.empty()) {
+    RCLCPP_WARN(logger_, "Cannot plan path: Missing map!");
+    return nav_msgs::msg::Path();
+  }
+  // Plan path using A* algorithm
   nav_msgs::msg::Path path = runAStar(now);
   RCLCPP_INFO(logger_, "Path planned of length %d", path.poses.size());
   return path; 
@@ -44,15 +52,9 @@ nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
   path.header.stamp = now;
   path.header.frame_id = current_map_.header.frame_id;
 
-  // Check for occupied start or goal nodes 
-  if (!isCellFree(start)) {
-    RCLCPP_WARN(logger_, "Start cell is not free!");
-    return path;
-  }
-  if (!isCellFree(goal)) {
-    RCLCPP_WARN(logger_, "Goal cell is not free!");
-    return path;
-  }
+  int index = start.x + start.y * current_map_.info.width;
+  int goal_index = goal.x + goal.y * current_map_.info.width;
+  RCLCPP_INFO(logger_, "Planning A* from start %d, (%d, %d), value %d, to goal %d, (%d, %d), value %d", index, start.x, start.y, current_map_.data[index], goal_index, goal.x, goal.y, current_map_.data[goal_index]);
 
   // Compute path using A* on current_map_ and fill path.poses with the resulting waypoints
   std::priority_queue<AStarNode, std::vector<AStarNode>, CompareF> open;
@@ -76,30 +78,28 @@ nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
         current = came_from[current];
         path_cells.push_back(current);
       }
-      
       // Reverse and convert to poses 
       reverse(path_cells.begin(), path_cells.end());
-      for (const CellIndex& cell : path_cells)
+      for (const CellIndex& cell : path_cells) {
         path.poses.push_back(cellToPose(cell, now));
-      
-      RCLCPP_INFO(logger_, "A* succeeded with %zu points", path.poses.size());
+      }
       return path;
     }
 
     // Skip if node is already processed 
     if (closed.find(current_node) != closed.end()) continue;
     closed.insert(current_node);
-
     // Explore neighbours 
     for (const CellIndex& neighbor : getNeighbors(current_node)) {
-      if (!isCellFree(neighbor) || closed.find(neighbor) != closed.end()) continue;
-
-      double tentative_g = g_score[current_node] + distance(current_node, neighbor);
-      if (!g_score.count(neighbor) || tentative_g < g_score[neighbor]) {
+      if (!isCellValid(neighbor) || !isCellFree(neighbor) || closed.find(neighbor) != closed.end()) continue;
+      double obstacle_cost = getObstacleCost(neighbor); // Discourage cells near obstacles 
+      double tentative_g_score = g_score[current_node] + 5.0 * obstacle_cost + distance(current_node, neighbor);
+      if (!g_score.count(neighbor) || tentative_g_score < g_score[neighbor]) {
         came_from[neighbor] = current_node;
-        g_score[neighbor] = tentative_g;
-        double f = tentative_g + heuristic(neighbor, goal);
-        open.emplace(neighbor, f);
+        g_score[neighbor] = tentative_g_score;
+        double f = tentative_g_score + heuristic(neighbor, goal);
+        AStarNode neighbor_node = AStarNode(neighbor, f);
+        open.emplace(neighbor_node);
       }
     }
   }
@@ -108,21 +108,43 @@ nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
   return path;
 }
 
-bool PlannerCore::isCellFree(const CellIndex& cell) const {
-  if (cell.x < 0 || cell.y < 0 || cell.x >= static_cast<int>(current_map_.info.width) || cell.y >= static_cast<int>(current_map_.info.height)) return false;
+double PlannerCore::getObstacleCost(const CellIndex& cell) const {
   int index = cell.y * current_map_.info.width + cell.x;
   int value = current_map_.data[index];
-  bool cellFree = value == -1 || (0 <= value && value < 50); // threshold of 50 for free cells 
-  return cellFree; 
+  double cost = 0.0; 
+  if (value == -1) {
+    // Unknown cell: discourage but not forbid 
+    cost = 0.8; 
+  } else {
+    // Normalize cost to [0, 1]
+    cost = std::clamp(value / 100.0, 0.0, 1.0); 
+  }
+  return cost; 
+}
+
+bool PlannerCore::isCellValid(const CellIndex& cell) const {
+  return 0 < cell.x && 0 < cell.y && cell.x < static_cast<int>(current_map_.info.width) && cell.y < static_cast<int>(current_map_.info.height);
+}
+
+bool PlannerCore::isCellFree(const CellIndex& cell) const {
+  int index = cell.y * current_map_.info.width + cell.x;
+  int value = current_map_.data[index];
+  bool isUnknown = value == -1;
+  // Threshold of 50 for free cells 
+  bool isFree = 0 <= value && value < 50; 
+  return isUnknown || isFree; 
 }
 
 std::vector<CellIndex> PlannerCore::getNeighbors(const CellIndex& idx) const {
-  std::vector<CellIndex> deltas = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+  std::vector<CellIndex> deltas = {
+    {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+    {1, 1}, {-1, 1}, {-1, 1}, {-1, -1}
+  };
   std::vector<CellIndex> neighbors;
   for (const auto& d : deltas) {
     // Add free cells 
     CellIndex n(idx.x + d.x, idx.y + d.y);
-    if (isCellFree(n)) neighbors.push_back(n);
+    if (isCellValid(n) && isCellFree(n)) neighbors.push_back(n);
   }
   return neighbors;
 }
@@ -145,8 +167,8 @@ geometry_msgs::msg::PoseStamped PlannerCore::cellToPose(const CellIndex& idx, co
   geometry_msgs::msg::PoseStamped pose;
   pose.header.stamp = now;
   pose.header.frame_id = current_map_.header.frame_id;
-  pose.pose.position.x = current_map_.info.origin.position.x + idx.x * current_map_.info.resolution;
-  pose.pose.position.y = current_map_.info.origin.position.y + idx.y * current_map_.info.resolution;
+  pose.pose.position.x = current_map_.info.origin.position.x + (idx.x + 0.5) * current_map_.info.resolution;
+  pose.pose.position.y = current_map_.info.origin.position.y + (idx.y + 0.5) * current_map_.info.resolution; 
   pose.pose.position.z = 0.0;
   pose.pose.orientation.w = 1.0;
   return pose;

@@ -54,7 +54,7 @@ nav_msgs::msg::Path PlannerCore::runAStar(const rclcpp::Time& now) {
 
   int index = start.x + start.y * current_map_.info.width;
   int goal_index = goal.x + goal.y * current_map_.info.width;
-  RCLCPP_INFO(logger_, "Planning A* from start %d, (%d, %d), value %d, to goal %d, (%d, %d), value %d", index, start.x, start.y, current_map_.data[index], goal_index, goal.x, goal.y, current_map_.data[goal_index]);
+  RCLCPP_INFO(logger_, "Planning A* from start (%d, %d), value %d, to goal (%d, %d), value %d", start.x, start.y, current_map_.data[index], goal.x, goal.y, current_map_.data[goal_index]);
 
   // Compute path using A* on current_map_ and fill path.poses with the resulting waypoints
   std::priority_queue<AStarNode, std::vector<AStarNode>, CompareF> open;

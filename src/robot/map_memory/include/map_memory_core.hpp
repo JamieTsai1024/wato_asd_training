@@ -9,7 +9,7 @@ namespace robot {
 class MapMemoryCore {
   public:
     explicit MapMemoryCore(const rclcpp::Logger& logger, rclcpp::Node* node);
-    void storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap);
+    bool storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap);
     void checkUpdateMap(double x, double y, double yaw);
     nav_msgs::msg::OccupancyGrid& getGlobalMap();
     bool getShouldUpdate();

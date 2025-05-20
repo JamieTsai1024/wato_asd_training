@@ -15,6 +15,7 @@ class MapMemoryNode : public rclcpp::Node {
     void costmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void updateMap();
+    void publishMap();
 
   private:
     robot::MapMemoryCore map_memory_;

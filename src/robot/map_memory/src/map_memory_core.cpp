@@ -11,12 +11,19 @@ MapMemoryCore::MapMemoryCore(const rclcpp::Logger& logger, rclcpp::Node* node) :
   should_update_map_ = false ;
 }
 
-void MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
+bool MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
   latest_costmap_ = costmap;
   costmap_updated_ = true;
 
   // Initialize the global map if it is empty
-  if (global_map_.data.empty()) {
+  if (global_map_.data.empty()) {    
+    // Only initialize if the costmap contains obstacles (empty map is published at the beginning before obstacles are detected)
+    bool has_obstacles = std::any_of(costmap.data.begin(), costmap.data.end(), [](int8_t val) { return val > 0; });
+    if (!has_obstacles) return false;
+
+    // Publish costmap on initialization 
+    should_update_map_ = true;
+
     // Calculate global map dimensions
     int local_width = latest_costmap_.info.width;
     int local_height = latest_costmap_.info.height;
@@ -35,16 +42,18 @@ void MapMemoryCore::storeCostmap(const nav_msgs::msg::OccupancyGrid& costmap) {
     global_map_.info.resolution = resolution;
     global_map_.header.frame_id = "sim_world"; 
     global_map_.data.assign(global_width * global_height, -1);
+    return true; 
   }
+  return false;
 }
 
 void MapMemoryCore::checkUpdateMap(double x, double y, double yaw) {
   // Check if the robot has moved significantly or if the last position is not set
   double distance = std::hypot(x - last_x_, y - last_y_);
+  robot_yaw_ = yaw; 
   if (distance >= distance_threshold_) {
     last_x_ = x;
     last_y_ = y;
-    robot_yaw_ = yaw;
     should_update_map_ = true;
   }
 }
@@ -94,7 +103,9 @@ void MapMemoryCore::integrateCostmap() {
       
       if (0 <= global_x && global_x < global_width && 0 <= global_y && global_y < global_height) {
         int global_index = global_y * global_map_.info.width + global_x;
-        global_map_.data[global_index] = cost;
+        // Take max to avoid clearing old obstacles 
+        // Could add decay factor to reduce cost over time and reduce ghost obstacles 
+        global_map_.data[global_index] = std::max(cost, global_map_.data[global_index]);
       }
     }
   }

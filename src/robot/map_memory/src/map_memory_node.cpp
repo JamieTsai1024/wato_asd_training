@@ -12,7 +12,8 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
 }
 
 void MapMemoryNode::costmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-  map_memory_.storeCostmap(*msg);
+  bool firstCall = map_memory_.storeCostmap(*msg);
+  if (firstCall) updateMap(); // Publish map on initialization
 }
 
 void MapMemoryNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -25,10 +26,14 @@ void MapMemoryNode::odometryCallback(const nav_msgs::msg::Odometry::SharedPtr ms
 void MapMemoryNode::updateMap() {
   if (map_memory_.getShouldUpdate()) {
     map_memory_.integrateCostmap();
-    nav_msgs::msg::OccupancyGrid& map = map_memory_.getGlobalMap();
-    map.header.stamp = this->get_clock()->now();
-    map_pub_->publish(map);
+    publishMap(); 
   }
+}
+
+void MapMemoryNode::publishMap() {
+  nav_msgs::msg::OccupancyGrid& map = map_memory_.getGlobalMap();
+  map.header.stamp = this->get_clock()->now();
+  map_pub_->publish(map);
 }
 
 double MapMemoryNode::extractYaw(const geometry_msgs::msg::Quaternion& quat) {
